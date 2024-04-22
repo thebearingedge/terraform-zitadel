@@ -1,0 +1,62 @@
+services:
+
+  app:
+    image: gcr.io/google-samples/hello-app:1.0
+
+  haproxy:
+    image: docker.io/haproxytech/haproxy-alpine:2.9.7
+    volumes:
+      - ./services/haproxy/etc/haproxy:/etc/haproxy
+      - ./certs/tls.pem:/etc/ssl/certs/tls.pem
+    ports:
+      - 127.0.0.1:80:80
+      - 127.0.0.1:443:443
+    networks:
+      default:
+        aliases:
+          - ${DOMAIN_NAME}
+          - pg.${DOMAIN_NAME}
+    healthcheck:
+      test: for port in 80 443 5432; do /usr/bin/nc -z 127.0.0.1 $$port; done
+      interval: 3s
+      start_period: 3s
+      retries: 10
+
+  postgres:
+    image: docker.io/library/postgres:16.2-alpine3.19
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASES: ${POSTGRES_DATABASES}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./services/postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ./services/postgres/tmp:/tmp
+    healthcheck:
+      test: /tmp/healthcheck.sh
+      interval: 5s
+      start_period: 2s
+      retries: 10
+
+  pgweb:
+    image: docker.io/sosedoff/pgweb:0.15.0
+    environment:
+      PGWEB_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@pg.${DOMAIN_NAME}/postgres?sslmode=disable
+    depends_on:
+      haproxy:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: curl -o /dev/null -fsS http://localhost:8081
+      interval: 3s
+      start_period: 3s
+      retries: 10
+
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: compose0
+
+volumes:
+  pg_data:

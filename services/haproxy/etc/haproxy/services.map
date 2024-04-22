@@ -1,0 +1,3 @@
+db    pgweb
+app   app
+pg    postgres
