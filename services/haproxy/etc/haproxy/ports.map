@@ -3,3 +3,5 @@ mail     8025
 smtp     1025
 app      8080
 pg       5432
+s3       9000
+minio    9001

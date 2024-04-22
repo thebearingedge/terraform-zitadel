@@ -3,3 +3,5 @@ mail  mailpit
 smtp  mailpit
 app   app
 pg    postgres
+s3    minio
+minio minio
