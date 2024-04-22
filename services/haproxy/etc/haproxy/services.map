@@ -5,3 +5,4 @@ app   app
 pg    postgres
 s3    minio
 minio minio
+auth  zitadel
