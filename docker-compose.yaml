@@ -19,6 +19,8 @@ services:
           - db.${DOMAIN_NAME}
           - smtp.${DOMAIN_NAME}
           - mail.${DOMAIN_NAME}
+          - s3.${DOMAIN_NAME}
+          - minio.${DOMAIN_NAME}
     healthcheck:
       test: for port in 25 80 443 5432; do /usr/bin/nc -z 127.0.0.1 $$port; done
       interval: 3s
@@ -95,10 +97,27 @@ services:
       haproxy:
         condition: service_healthy
     healthcheck:
-      test: /tmp/healthcheck.sh
+      test: /tmp/scripts/healthcheck.sh
       interval: 3s
       start_period: 3s
       retries: 10
+
+  minio_init:
+    image: quay.io/minio/minio:RELEASE.2024-04-18T19-09-19Z
+    entrypoint: [/tmp/scripts/init.sh]
+    environment:
+      MINIO_APPS: ${MINIO_APPS}
+      MINIO_ENDPOINT: https://s3.${DOMAIN_NAME}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ${ROOT_CA_PEM}:/etc/ssl/certs/root-ca.pem
+      - ./services/minio/tmp:/tmp
+    depends_on:
+      haproxy:
+        condition: service_started
+      minio:
+        condition: service_healthy
 
 networks:
   default:
