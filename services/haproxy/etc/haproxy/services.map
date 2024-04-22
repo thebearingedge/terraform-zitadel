@@ -1,3 +1,5 @@
 db    pgweb
+mail  mailpit
+smtp  mailpit
 app   app
 pg    postgres

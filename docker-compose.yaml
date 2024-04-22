@@ -16,8 +16,11 @@ services:
         aliases:
           - ${DOMAIN_NAME}
           - pg.${DOMAIN_NAME}
+          - db.${DOMAIN_NAME}
+          - smtp.${DOMAIN_NAME}
+          - mail.${DOMAIN_NAME}
     healthcheck:
-      test: for port in 80 443 5432; do /usr/bin/nc -z 127.0.0.1 $$port; done
+      test: for port in 25 80 443 5432; do /usr/bin/nc -z 127.0.0.1 $$port; done
       interval: 3s
       start_period: 3s
       retries: 10
@@ -47,7 +50,27 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: curl -o /dev/null -fsS http://localhost:8081
+      test: /usr/bin/curl -o /dev/null -fsS http://localhost:8081
+      interval: 3s
+      start_period: 3s
+      retries: 10
+
+  mailpit:
+    image: docker.io/axllent/mailpit:v1.17.0
+    environment:
+      MP_SMTP_AUTH: ${ADMIN_USERNAME}:${ADMIN_PASSWORD}
+    volumes:
+      - ./certs:/etc/mailpit/certs
+    command:
+      - --smtp-tls-cert
+      - /etc/mailpit/certs/tls.crt
+      - --smtp-tls-key
+      - /etc/mailpit/certs/tls.key
+    depends_on:
+      haproxy:
+        condition: service_healthy
+    healthcheck:
+      test: /usr/bin/wget --spider -q http://localhost:8025
       interval: 3s
       start_period: 3s
       retries: 10
