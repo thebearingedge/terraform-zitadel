@@ -136,8 +136,33 @@ services:
     environment:
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_DISABLE_UPDATE_CHECK: true
-      AUTHENTIK_LOG_LEVEL: warning
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${ADMIN_USERNAME}@${DOMAIN_NAME}
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${ADMIN_PASSWORD}
       AUTHENTIK_COOKIE_DOMAIN: ${DOMAIN_NAME}
+      AUTHENTIK_REDIS__HOST: kv.${DOMAIN_NAME}
+      AUTHENTIK_POSTGRESQL__HOST: pg.${DOMAIN_NAME}
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: authentik
+      AUTHENTIK_STORAGE__MEDIA__BACKEND: s3
+      AUTHENTIK_STORAGE__MEDIA__S3__ENDPOINT: https://s3.${DOMAIN_NAME}
+      AUTHENTIK_STORAGE__MEDIA__S3__ACCESS_KEY: ${AUTHENTIK_STORAGE__MEDIA__S3__ACCESS_KEY}
+      AUTHENTIK_STORAGE__MEDIA__S3__SECRET_KEY: ${AUTHENTIK_STORAGE__MEDIA__S3__SECRET_KEY}
+      AUTHENTIK_STORAGE__MEDIA__S3__BUCKET_NAME: authentik
+    volumes:
+      - ${ROOT_CA_PEM}:/etc/ssl/certs/root-ca.pem
+    command: server
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  worker:
+    image: ghcr.io/goauthentik/server:2024.2.3
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_REDIS__HOST: kv.${DOMAIN_NAME}
       AUTHENTIK_POSTGRESQL__HOST: pg.${DOMAIN_NAME}
       AUTHENTIK_POSTGRESQL__USER: authentik
@@ -148,14 +173,13 @@ services:
       AUTHENTIK_EMAIL__PASSWORD: ${ADMIN_PASSWORD}
       AUTHENTIK_EMAIL__USE_TLS: true
       AUTHENTIK_EMAIL__FROM: ${ADMIN_USERNAME}@${DOMAIN_NAME}
-      AUTHENTIK_STORAGE__MEDIA__BACKEND: s3
-      AUTHENTIK_STORAGE__MEDIA__S3__ENDPOINT: https://s3.${DOMAIN_NAME}
-      AUTHENTIK_STORAGE__MEDIA__S3__ACCESS_KEY: ${AUTHENTIK_STORAGE__MEDIA__S3__ACCESS_KEY}
-      AUTHENTIK_STORAGE__MEDIA__S3__SECRET_KEY: ${AUTHENTIK_STORAGE__MEDIA__S3__SECRET_KEY}
-      AUTHENTIK_STORAGE__MEDIA__S3__BUCKET_NAME: authentik
     volumes:
       - ${ROOT_CA_PEM}:/etc/ssl/certs/root-ca.pem
-    command: server
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    command: worker
     restart: unless-stopped
     depends_on:
       redis:
