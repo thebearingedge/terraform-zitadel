@@ -165,6 +165,7 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ADMIN_USERNAME}@${DOMAIN_NAME}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ADMIN_PASSWORD}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: false
+      ZITADEL_DEFAULTINSTANCE_SMTPCONFIGURATION_TLS: true
       ZITADEL_DEFAULTINSTANCE_SMTPCONFIGURATION_SMTP_HOST: smtp.${DOMAIN_NAME}:25
       ZITADEL_DEFAULTINSTANCE_SMTPCONFIGURATION_SMTP_USER: ${ADMIN_USERNAME}
       ZITADEL_DEFAULTINSTANCE_SMTPCONFIGURATION_SMTP_PASSWORD: ${ADMIN_PASSWORD}
@@ -182,8 +183,8 @@ services:
     depends_on:
       minio_init:
         condition: service_completed_successfully
-      zitadel_init:
-        condition: service_completed_successfully
+      # zitadel_init:
+      #   condition: service_completed_successfully
       haproxy:
         condition: service_healthy
       postgres:
