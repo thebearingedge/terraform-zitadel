@@ -2,6 +2,8 @@ db    pgweb
 mail  mailpit
 smtp  mailpit
 app   app
+kv    redis
 pg    postgres
 s3    minio
 minio minio
+auth  authentik

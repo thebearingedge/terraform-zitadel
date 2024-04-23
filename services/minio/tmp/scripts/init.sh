@@ -12,4 +12,14 @@ create_buckets() {
   done
 }
 
+create_apps() {
+  [ -z "${MINIO_APPS:-}" ] && return
+  for app in $MINIO_APPS; do
+    username="$(echo "$app" | cut -d ':' -f 1)"
+    password="$(echo "$app" | cut -d ':' -f 2)"
+    mc admin user add s3 "$username" "$password"
+  done
+}
+
 create_buckets
+create_apps

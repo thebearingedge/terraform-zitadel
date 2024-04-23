@@ -15,16 +15,28 @@ services:
       default:
         aliases:
           - ${DOMAIN_NAME}
+          - kv.${DOMAIN_NAME}
           - pg.${DOMAIN_NAME}
           - db.${DOMAIN_NAME}
           - smtp.${DOMAIN_NAME}
           - mail.${DOMAIN_NAME}
           - s3.${DOMAIN_NAME}
           - minio.${DOMAIN_NAME}
+          - auth.${DOMAIN_NAME}
     healthcheck:
       test: for port in 25 80 443 5432; do /usr/bin/nc -z 127.0.0.1 $$port; done
       interval: 3s
       start_period: 3s
+      retries: 10
+
+  redis:
+    image: docker.io/library/redis:7.2.4-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: /usr/local/bin/redis-cli ping
+      interval: 5s
+      start_period: 2s
       retries: 10
 
   postgres:
@@ -119,6 +131,38 @@ services:
       minio:
         condition: service_healthy
 
+  authentik:
+    image: ghcr.io/goauthentik/server:2024.2.3
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_DISABLE_UPDATE_CHECK: true
+      AUTHENTIK_LOG_LEVEL: warning
+      AUTHENTIK_COOKIE_DOMAIN: ${DOMAIN_NAME}
+      AUTHENTIK_REDIS__HOST: kv.${DOMAIN_NAME}
+      AUTHENTIK_POSTGRESQL__HOST: pg.${DOMAIN_NAME}
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: authentik
+      AUTHENTIK_EMAIL__HOST: smtp.${DOMAIN_NAME}
+      AUTHENTIK_EMAIL__USERNAME: ${ADMIN_USERNAME}
+      AUTHENTIK_EMAIL__PASSWORD: ${ADMIN_PASSWORD}
+      AUTHENTIK_EMAIL__USE_TLS: true
+      AUTHENTIK_EMAIL__FROM: ${ADMIN_USERNAME}@${DOMAIN_NAME}
+      AUTHENTIK_STORAGE__MEDIA__BACKEND: s3
+      AUTHENTIK_STORAGE__MEDIA__S3__ENDPOINT: https://s3.${DOMAIN_NAME}
+      AUTHENTIK_STORAGE__MEDIA__S3__ACCESS_KEY: ${AUTHENTIK_STORAGE__MEDIA__S3__ACCESS_KEY}
+      AUTHENTIK_STORAGE__MEDIA__S3__SECRET_KEY: ${AUTHENTIK_STORAGE__MEDIA__S3__SECRET_KEY}
+      AUTHENTIK_STORAGE__MEDIA__S3__BUCKET_NAME: authentik
+    volumes:
+      - ${ROOT_CA_PEM}:/etc/ssl/certs/root-ca.pem
+    command: server
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
 networks:
   default:
     driver: bridge
@@ -126,5 +170,6 @@ networks:
       com.docker.network.bridge.name: compose0
 
 volumes:
+  redis_data:
   pg_data:
   minio_data:
