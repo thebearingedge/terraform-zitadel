@@ -150,7 +150,7 @@ services:
       AUTHENTIK_STORAGE__MEDIA__S3__SECRET_KEY: ${AUTHENTIK_STORAGE__MEDIA__S3__SECRET_KEY}
       AUTHENTIK_STORAGE__MEDIA__S3__BUCKET_NAME: authentik
     volumes:
-      - ${ROOT_CA_PEM}:/etc/ssl/certs/root-ca.pem
+      - ${ROOT_CA_PEM}:/certs/root-ca.pem
     command: server
     restart: unless-stopped
     depends_on:
@@ -171,10 +171,10 @@ services:
       AUTHENTIK_EMAIL__HOST: smtp.${DOMAIN_NAME}
       AUTHENTIK_EMAIL__USERNAME: ${ADMIN_USERNAME}
       AUTHENTIK_EMAIL__PASSWORD: ${ADMIN_PASSWORD}
-      AUTHENTIK_EMAIL__USE_TLS: true
+      AUTHENTIK_EMAIL__USE_SSL: true
       AUTHENTIK_EMAIL__FROM: ${ADMIN_USERNAME}@${DOMAIN_NAME}
     volumes:
-      - ${ROOT_CA_PEM}:/etc/ssl/certs/root-ca.pem
+      - ${ROOT_CA_PEM}:/certs/root-ca.pem
     ulimits:
       nofile:
         soft: 65536
